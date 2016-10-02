@@ -18,7 +18,11 @@ module.exports.getPrefix = getPrefix
 function sheetify (src, filename, options, done) {
   // handle tagged template calls directly from Node
   const isTemplate = Array.isArray(src)
-  if (isTemplate) src = src.join('')
+  if (isTemplate) {
+    const values = [].slice.call(arguments, 1)
+    src = compileTemplate(src, values)
+  }
+  // We should have a css string or filename by now
   assert.equal(typeof src, 'string', 'src must be a string')
   src = src.trim()
 
@@ -37,7 +41,9 @@ function sheetify (src, filename, options, done) {
   const prefix = getPrefix(css)
 
   // only parse if in a browserify transform
-  if (typeof filename === 'string') parseCss(src, filename, prefix, options, done)
+  if (!isTemplate && typeof filename === 'string') {
+    parseCss(src, filename, prefix, options, done)
+  }
 
   return prefix
 }
@@ -48,6 +54,18 @@ function getPrefix (css) {
     .digest('hex')
     .slice(0, 8)
   return prefix
+}
+
+function compileTemplate (strings, values) {
+  const template = strings.map(combine).join('')
+
+  function combine (str, i) {
+    const value = values[i] || ''
+    return str + value
+  }
+
+  console.log(template)
+  return template
 }
 
 // parse css
